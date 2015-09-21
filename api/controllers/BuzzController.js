@@ -6,7 +6,7 @@
  */
 
 module.exports = {
-	
+
     do:function(req,res){
         if(!req.params.room || !req.params.who){
             return res.send("INVALID BUZZ. Missing data.");
@@ -22,6 +22,31 @@ module.exports = {
             if(!room) return res.send("INVALID ROOM.");
             if(room.buzzes && room.buzzes.length > 0) return res.send("NOPE! You already buzzed in.");
             var buzzData={room:room.id,who:req.params.who,number:number}
+            Buzz.create(buzzData).exec(function(err,newBuzz){
+                if(err) return res.send(err);
+                sails.sockets.broadcast(room.id,'newbuzz',newBuzz);
+                res.send("You are buzzed in.");
+
+                // Buzz.publishCreate(buzz);
+                //room.buzzes.publishAdd()
+            });
+        });
+    },
+    doSlack:function(req,res){
+        if(!req.params.room || !req.query.user_id){
+            return res.send("INVALID BUZZ. Missing data.");
+        }
+        var number = parseInt(req.query.text || 5);
+        if(number < 1 || number > 5 || !req.query.text){
+            return res.send("INVALID BUZZ. Enter a number between 1 and 5.");
+        }
+
+        Room.findOne({name:req.params.room})
+        .populate('buzzes',{where:{status:'new',who:req.query.user_id}})
+        .exec(function(err,room){
+            if(!room) return res.send("INVALID ROOM.");
+            if(room.buzzes && room.buzzes.length > 0) return res.send("NOPE! You already buzzed in.");
+            var buzzData={room:room.id,who:req.query.user_id,number:number}
             Buzz.create(buzzData).exec(function(err,newBuzz){
                 if(err) return res.send(err);
                 sails.sockets.broadcast(room.id,'newbuzz',newBuzz);

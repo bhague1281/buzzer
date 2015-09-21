@@ -31,6 +31,7 @@ module.exports.routes = {
 
   // buzz socket routes
   'get /api/buzz/do/:room/:who/:num?':'BuzzController.do',
+  'get /api/buzz/do/:room': 'BuzzController.doSlack',
   'get /api/buzz/reset/:roomid':'BuzzController.reset',
 
   // room socket routes
