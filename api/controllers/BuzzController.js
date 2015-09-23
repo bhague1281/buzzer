@@ -33,7 +33,7 @@ module.exports = {
         });
     },
     doSlack:function(req,res){
-        if(!req.params.room || !req.query.user_id){
+        if(!req.params.room || !req.query.user_name){
             return res.send("INVALID BUZZ. Missing data.");
         }
         var number = parseInt(req.query.text || 5);
@@ -42,18 +42,18 @@ module.exports = {
         }
 
         Room.findOne({name:req.params.room})
-        .populate('buzzes',{where:{status:'new',who:req.query.user_id}})
+        .populate('buzzes',{where:{status:'new',who:req.query.user_name}})
         .exec(function(err,room){
             if(!room) return res.send("INVALID ROOM.");
             if(room.buzzes && room.buzzes.length > 0) return res.send("NOPE! You already buzzed in.");
-            var buzzData={room:room.id,who:req.query.user_id,number:number}
+            var buzzData={room:room.id,who:req.query.user_name,number:number}
             Buzz.create(buzzData).exec(function(err,newBuzz){
-                if(err) return res.send(err);
+                if(err) {
+                  sails.log.error(err);
+                  return res.send("INVALID BUZZ. Enter a number between 1 and 5.");
+                }
                 sails.sockets.broadcast(room.id,'newbuzz',newBuzz);
                 res.send("You are buzzed in.");
-
-                // Buzz.publishCreate(buzz);
-                //room.buzzes.publishAdd()
             });
         });
     },
